@@ -1,6 +1,7 @@
 import requests
 import os
 import sys
+import time
 import argparse
 
 
@@ -8,8 +9,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--username", help="your mangadex username")
 parser.add_argument("-p", "--password", help="your mangadex password")
 parser.add_argument("-m", "--manga-id", required=True, help="ID of the manga")
-parser.add_argument("-s", "--start", help="chapter number to start downloading from")
-parser.add_argument("-t", "--to", help="chapter number to stop downloading after")
+parser.add_argument("-s", "--start", type=float, help="chapter number to start downloading from")
+parser.add_argument("-t", "--to", type=float, help="chapter number to stop downloading after")
 parser.add_argument("-k", "--keep-name", action="store_true", help="keep original filename")
 parser.add_argument("-v", "--verbose", action="store_true", help="turns on verbosity")
 args = parser.parse_args()
@@ -58,27 +59,27 @@ if response.status_code != 200:
 
 manga_info = response.json()
 
-
-#print(manga_info)
-
 manga_name = manga_info['data']['attributes']['title']['en']
-
-#manga_vol_count = manga_info['data']['attributes']['lastVolume']
-#volume_pad = len(manga_vol_count)
-
-#manga_chapter_count = manga_info['data']['attributes']['lastChapter']
-#chapter_pad = len(manga_chapter_count)
-
 
 if not os.path.exists(manga_name):
     os.mkdir(manga_name)
 
 
-loop = 100#int(manga_chapter_count)
+if args.start != None:
+    start = float(args.start)
+else:
+    start = float(0)
 
-while loop > 0:
+if args.to != None:
+    to = float(args.to + 1.0)
+else:
+    to = float(9999999)
 
-    offset = 0
+
+offset = max(0, int(start)-20)
+current = start
+
+while current < to:
 
     params = {
         "manga" : manga_id,
@@ -87,36 +88,99 @@ while loop > 0:
         "offset" : offset
     }
 
-    chapter_info = req.get(f"{api_url}/chapter", params = params).json()
+    response = req.get(f"{api_url}/chapter", params = params)
 
-    print(chapter_info)
+    if response.status_code != 200:
+        if response.status_code == 400 or response.status_code == 403:
+            for error in response.json()['errors']:
+                print(error['detail'])
+        else:
+            print(response)
+            print(response.text)
+        sys.exit()
 
-    for ch in chapter_info['results']:
+    chapter_info = response.json()
 
-        ch_id = ch['data']['id']
-        ch_hash = ch['data']['attributes']['hash']
-        volume_dir = 'volume ' + (ch['data']['attributes']['volume'])#.zfill(volume_pad)
-        chapter_dir = 'chapter ' + (ch['data']['attributes']['chapter'])#.zfill(chapter_pad)
-        filenames = ch['data']['attributes']['data']
-        base_url = req.get(f"{api_url}/at-home/server/{ch_id}").json()['baseUrl']
+    if not chapter_info['results']:
+        break
 
-        print(volume_dir)
+    #print(chapter_info)
 
-        if not os.path.exists(f"{manga_name}/{volume_dir}/{chapter_dir}"):
-            os.makedirs(f"{manga_name}/{volume_dir}/{chapter_dir}")
+    for chapter in chapter_info['results']:
 
-        num = 1
+        chapter_id = chapter['data']['id']
+        chapter_hash = chapter['data']['attributes']['hash']
+        scanlators = []
+
+        for relationship in chapter['relationships']:
+
+            if relationship['type'] == "scanlation_group":
+                group_id = relationship['id']
+                response = req.get(f"{api_url}/group/{group_id}")
+                if response.status_code != 200:
+                    if response.status_code == 403 or response.status_code == 404:
+                        for error in response.json()['errors']:
+                            print(error['detail'])
+                    else:
+                        print(response)
+                        print(response.text)
+                else:
+                    group_info = response.json()
+                    group_name = group_info['data']['attributes']['name']
+                    scanlators.append(group_name)
+
+        chapter_number = chapter['data']['attributes']['chapter']
+        current = float(chapter_number)
+        if current < start:
+            continue
+        if current >= to:
+            break
+
+        if "." in chapter_number:
+            x = chapter_number.split(".")
+            cnum = x[0].zfill(3) + "." + x[1]
+        else:
+            cnum = chapter_number.zfill(3)
+
+        chapter_dir = 'Chapter ' + cnum
+        if scanlators:
+            chapter_dir += " " + "[" + " + ".join(scanlators) + "]"
+
+
+        status_code = 404
+        tries = 0
+        while status_code != 200:
+            if tries > 5:
+                print(f"Problem with MangaDex@Home network, couldn't fetch chapter {chapter_number}.")
+                sys.exit()
+
+            response = req.get(f"{api_url}/at-home/server/{chapter_id}")
+            status_code = response.status_code
+
+            if status_code == 200:
+                break
+            else:
+                tries += 1
+                time.sleep(3)
+
+
+        base_url = response.json()['baseUrl']
+        filenames = chapter['data']['attributes']['data']
+
+        if not os.path.exists(f"{manga_name}/{chapter_dir}"):
+            os.makedirs(f"{manga_name}/{chapter_dir}")
+
+        pnum = 1
         for filename in filenames:
-            url = f"{base_url}/data/{ch_hash}/{filename}"
+            url = f"{base_url}/data/{chapter_hash}/{filename}"
             ext = os.path.splitext(filename)[1]
-            output = f"{manga_name}/{volume_dir}/{chapter_dir}/{num:03}{ext}"
+            output = f"{manga_name}/{chapter_dir}/c{cnum}_p{pnum:04}{ext}"
+            print(output)
             image = req.get(url)
             with open(output, 'wb') as f:
                 f.write(image.content)
-            num += 1
+            pnum += 1
 
-            print(output)
+    offset += 100
 
-        loop -= 100
-        offset += 100
-
+print("Download finished!")
