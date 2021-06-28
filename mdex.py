@@ -60,6 +60,7 @@ if response.status_code != 200:
 manga_info = response.json()
 
 manga_name = manga_info['data']['attributes']['title']['en']
+manga_name = manga_name.replace('/', '_')
 
 if not os.path.exists(manga_name):
     os.mkdir(manga_name)
@@ -127,6 +128,7 @@ while current < to:
                 else:
                     group_info = response.json()
                     group_name = group_info['data']['attributes']['name']
+                    group_name = group_name.replace('/', '_')
                     scanlators.append(group_name)
 
         chapter_number = chapter['data']['attributes']['chapter']
