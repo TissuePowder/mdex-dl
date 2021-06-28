@@ -2,7 +2,6 @@ import requests
 import os
 import sys
 import time
-import enum
 import argparse
 
 
