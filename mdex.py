@@ -2,6 +2,7 @@ import requests
 import os
 import sys
 import time
+import enum
 import argparse
 
 
@@ -85,6 +86,7 @@ while current < to:
     params = {
         "manga" : manga_id,
         "translatedLanguage[]" : "en",
+        "order[chapter]" : "asc",
         "limit" : 100,
         "offset" : offset
     }
