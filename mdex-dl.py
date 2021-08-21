@@ -119,7 +119,7 @@ def download_chapter(req, api_url, manga_name, chapter):
 
 
 
-def download_manga(req, api_url, manga_id, start, to):
+def download_manga(req, api_url, manga_id, start, to, lang):
 
     manga_name = get_manga_name(req, api_url, manga_id)
     if not os.path.exists(manga_name):
@@ -133,7 +133,7 @@ def download_manga(req, api_url, manga_id, start, to):
 
         params = {
             "manga" : manga_id,
-            "translatedLanguage[]" : "en",
+            "translatedLanguage[]" : lang,
             "order[chapter]" : "asc",
             "limit" : 100,
             "offset" : offset
@@ -178,6 +178,7 @@ def main():
     parser.add_argument(dest="link", help="link to the manga or chapter")
     parser.add_argument("-s", "--start", type=float, help="chapter number to start downloading from")
     parser.add_argument("-t", "--to", type=float, help="chapter number to stop downloading after")
+    parser.add_argument("-l", "--lang", help="language code: en, ja, es-la etc. default is English or en")
     args = parser.parse_args()
 
     req = requests.session()
@@ -192,6 +193,10 @@ def main():
     link = args.link.split('/')
     manga_id = ""
     chapter_id = ""
+    lang = "en"
+
+    if args.lang != None:
+        lang = args.lang
 
     for i in range(0, len(link)):
         if link[i] == "title":
@@ -235,7 +240,7 @@ def main():
         download_chapter(req, api_url, manga_name, chapter)
 
     else:
-        download_manga(req, api_url, manga_id, start, to)
+        download_manga(req, api_url, manga_id, start, to, lang)
 
     print("Download finished!")
 
