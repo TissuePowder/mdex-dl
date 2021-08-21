@@ -51,6 +51,7 @@ If you want to download in a range, then pass -s and -t both. The following will
 $ python mdex-dl.py https://mangadex.org/title/a7c13d5c-3a2d-4dc4-bcd7-74c79d05f88b -s 12 -t 20
 ```
 Pass a language code with the --lang option if you want to download chapters in some other language except English.
+### Note that if there are multiple releases of same chapter listed under a language, the downloader will download all of them.
 
 ## WIP
 I want to keep this script too simple, so no plans to add extra features or capabilites as of now. Open a PR if you want to add something.
