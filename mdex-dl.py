@@ -19,15 +19,15 @@ def check_response_code(response, known_errors = []):
 
 
 
-def login(req, api_url, username, password):
+# def login(req, api_url, username, password):
 
-    login_payload = {
-        "username": username,
-        "password": password
-    }
-    response = req.post(f"{api_url}/auth/login", json = login_payload)
-    if not check_response_code(response, [400, 401]):
-        sys.exit()
+#     login_payload = {
+#         "username": username,
+#         "password": password
+#     }
+#     response = req.post(f"{api_url}/auth/login", json = login_payload)
+#     if not check_response_code(response, [400, 401]):
+#         sys.exit()
 
 
 
@@ -173,8 +173,8 @@ def download_manga(req, api_url, manga_id, start, to):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-u", "--username", help="your mangadex username")
-    parser.add_argument("-p", "--password", help="your mangadex password")
+    # parser.add_argument("-u", "--username", help="your mangadex username")
+    # parser.add_argument("-p", "--password", help="your mangadex password")
     parser.add_argument(dest="link", help="link to the manga or chapter")
     parser.add_argument("-s", "--start", type=float, help="chapter number to start downloading from")
     parser.add_argument("-t", "--to", type=float, help="chapter number to stop downloading after")
@@ -183,11 +183,11 @@ def main():
     req = requests.session()
     api_url = 'https://api.mangadex.org'
 
-    username = args.username
-    password = args.password
+    # username = args.username
+    # password = args.password
 
-    if username and password:
-        login(req, api_url, username, password)
+    # if username and password:
+    #     login(req, api_url, username, password)
 
     link = args.link.split('/')
     manga_id = ""
