@@ -125,7 +125,7 @@ def download_manga(req, api_url, manga_id, start, to, lang):
     if not os.path.exists(manga_name):
         os.mkdir(manga_name)
 
-    offset = int(start)
+    offset = 0
     current = start
     counter = 0
 
