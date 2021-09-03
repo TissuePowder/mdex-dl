@@ -50,7 +50,7 @@ def download_chapter(req, api_url, manga_name, chapter):
     chapter_hash = chapter['data']['attributes']['hash']
     scanlators = []
 
-    for relationship in chapter['relationships']:
+    for relationship in chapter['data']['relationships']:
 
         if relationship['type'] == "scanlation_group":
 
@@ -228,7 +228,7 @@ def main():
         chapter = response.json()
         manga_name = ""
 
-        for relationship in chapter['relationships']:
+        for relationship in chapter['data']['relationships']:
             if relationship['type'] == "manga":
                 manga_id = relationship['id']
                 manga_name = get_manga_name(req, api_url, manga_id)
