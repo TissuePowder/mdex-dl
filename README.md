@@ -1,6 +1,10 @@
 # mdex-dl
 A simple python script to download manga from https://mangadex.org
 
+API documentation: https://api.mangadex.org/docs.html
+
+Script is tested working with the API version 5.2.28 at the time of writing this.
+
 ## Requirements
 Python 3.5 or up. You may need to install some modules separately such as requests.
 ```
@@ -31,28 +35,78 @@ optional arguments:
 -s START, --start START
 chapter number to start downloading from
 -t TO, --to TO        chapter number to stop downloading after
--l LANG, --lang LANG  language code: en, ja, es-la etc. default is English or en
+-l LANG, --lang LANG  comma separated language codes. default is en
+-g GROUPS, --groups GROUPS
+comma separated UUID's of scanlation groups
+-u UPLOADER, --uploader UPLOADER
+UUID of the uploader
 ```
 
 For the most basic feature, just paste a manga or chapter link and you are good to go. For example:
 ```
 $ python mdex-dl.py https://mangadex.org/title/a7c13d5c-3a2d-4dc4-bcd7-74c79d05f88b
 ```
-If you want to start downloading from a certain chapter, then pass the chapter number with -s or --start option. The following will start downloading from chapter 12, and keep downloading until all chapters are downloaded.
+You can specify a limit or range using the -s/--start or -t/--to options.
 ```
+# Chapter 12 to end
 $ python mdex-dl.py https://mangadex.org/title/a7c13d5c-3a2d-4dc4-bcd7-74c79d05f88b -s 12
-```
-If you want to download upto a certain chapter, then pass the chapter number with -t or --to option. The following will start downloading from the beginning and stop downloading after chapter 20 is downloaded.
-```
+
+# From beginning to chapter 20
 $ python mdex-dl.py https://mangadex.org/title/a7c13d5c-3a2d-4dc4-bcd7-74c79d05f88b -t 20
-```
-If you want to download in a range, then pass -s and -t both. The following will download from chapter 12 to 20.
-```
+
+# Chapter 12 to 20
 $ python mdex-dl.py https://mangadex.org/title/a7c13d5c-3a2d-4dc4-bcd7-74c79d05f88b -s 12 -t 20
 ```
-Pass a language code with the --lang option if you want to download chapters in some other language except English.
-### Note that if there are multiple releases of same chapter listed under a language, the downloader will download all of them.
+Pass a language code with -l or --lang option if you want to download chapters in some other language except English. Multiple language codes should be comma-separated. Note that if there are multiple releases of same chapter listed under a language, the downloader will download all of them.
 
-## WIP
-I want to keep this script too simple, so no plans to add extra features or capabilites as of now. Open a PR if you want to add something.
- 
+You can also filter chapters by scanlation group or uploader. Pass their UUID with -g/--groups or -u/--uploader options. Multiple group-id's should be comma-separated.
+```
+$ python mdex-dl.py https://mangadex.org/title/a7c13d5c-3a2d-4dc4-bcd7-74c79d05f88b -l pt-br -g 7300735e-e7dc-4182-baa4-60d5568d4e63
+```
+## Here is a list of languages and their respective codes.
+```
+Arabic : ar
+Bengali : bn
+Bulgarian : bg
+Burmese : my
+Catalan : ca
+Chinese (Simp) : zh
+Chinese (Trad) : zh-hk
+Czech : cs
+Danish : da
+Dutch : nl
+English : en
+Filipino : tl
+Finnish : fi
+French : fr
+German : de
+Greek : el
+Hebrew : he
+Hindi : hi
+Hungarian : hu
+Indonesian : id
+Italian : it
+Japanese : ja
+Korean : ko
+Lithuanian : lt
+Malay : ms
+Mongolian : mn
+Norwegian : no
+Persian : fa
+Polish : pl
+Portuguese (Br) : pt-br
+Portuguese (Pt) : pt
+Romanian : ro
+Russian : ru
+Serbo-Croatian : sh
+Spanish (Es) : es
+Spanish (LATAM) : es-la
+Swedish : sv
+Thai : th
+Turkish : tr
+Ukrainian : uk
+Vietnamese : vi
+```
+## Work in progress
+I want to keep this script simple, so not too many features will be added. There won't be any feature that requires http POST
+request for now. I will keep refining the filtering options. Open a PR if you want to contribute.
