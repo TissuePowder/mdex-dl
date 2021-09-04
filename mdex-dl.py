@@ -119,7 +119,7 @@ def download_chapter(req, api_url, manga_name, chapter):
 
 
 
-def download_manga(req, api_url, manga_id, start, to, lang):
+def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
 
     manga_name = get_manga_name(req, api_url, manga_id)
     if not os.path.exists(manga_name):
@@ -138,6 +138,10 @@ def download_manga(req, api_url, manga_id, start, to, lang):
             "limit" : 100,
             "offset" : offset
         }
+        if groups:
+            params['groups[]'] = groups
+        if uploader:
+            params['uploader'] = uploader
 
         response = req.get(f"{api_url}/chapter", params = params)
         if not check_response_code(response, [400, 403]):
@@ -178,7 +182,9 @@ def main():
     parser.add_argument(dest="link", help="link to the manga or chapter")
     parser.add_argument("-s", "--start", type=float, help="chapter number to start downloading from")
     parser.add_argument("-t", "--to", type=float, help="chapter number to stop downloading after")
-    parser.add_argument("-l", "--lang", help="language code: en, ja, es-la etc. default is English or en")
+    parser.add_argument("-l", "--lang", help="comma separated language codes. default is en")
+    parser.add_argument("-g", "--groups", help="comma separated UUID's of scanlation groups")
+    parser.add_argument("-u", "--uploader", help="UUID of the uploader")
     args = parser.parse_args()
 
     req = requests.session()
@@ -194,9 +200,17 @@ def main():
     manga_id = ""
     chapter_id = ""
     lang = "en"
+    groups = ""
+    uploader = ""
 
     if args.lang != None:
-        lang = args.lang
+        lang = args.lang.split(',')
+
+    if args.groups != None:
+        groups = args.groups.split(',')
+
+    if args.uploader != None:
+        uploader = args.uploader
 
     for i in range(0, len(link)):
         if link[i] == "title":
@@ -240,7 +254,7 @@ def main():
         download_chapter(req, api_url, manga_name, chapter)
 
     else:
-        download_manga(req, api_url, manga_id, start, to, lang)
+        download_manga(req, api_url, manga_id, start, to, lang, groups, uploader)
 
     print("Download finished!")
 
