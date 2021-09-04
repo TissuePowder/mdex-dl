@@ -25,7 +25,7 @@ $ python mdex-dl.py <manga_link>
 ```
 $ python mdex-dl.py -h
 
-usage: mdex-dl.py [-h] [-s START] [-t TO] [-l LANG] link
+usage: mdex-dl.py [-h] [-s START] [-t TO] [-l LANG] [-g GROUPS] [-u UPLOADER] link
 
 positional arguments:
 link                  link to the manga or chapter
@@ -33,13 +33,13 @@ link                  link to the manga or chapter
 optional arguments:
 -h, --help            show this help message and exit
 -s START, --start START
-chapter number to start downloading from
+                      chapter number to start downloading from
 -t TO, --to TO        chapter number to stop downloading after
 -l LANG, --lang LANG  comma separated language codes. default is en
 -g GROUPS, --groups GROUPS
-comma separated UUID's of scanlation groups
+                      comma separated UUID's of scanlation groups
 -u UPLOADER, --uploader UPLOADER
-UUID of the uploader
+                      UUID of the uploader
 ```
 
 For the most basic feature, just paste a manga or chapter link and you are good to go. For example:
