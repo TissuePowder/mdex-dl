@@ -3,6 +3,7 @@ import sys
 import time
 import os
 import argparse
+import zipfile
 
 
 def check_response_code(response, known_errors = []):
@@ -16,18 +17,6 @@ def check_response_code(response, known_errors = []):
         else:
             print(response, response.text, end='\n')
         return False
-
-
-
-# def login(req, api_url, username, password):
-
-#     login_payload = {
-#         "username": username,
-#         "password": password
-#     }
-#     response = req.post(f"{api_url}/auth/login", json = login_payload)
-#     if not check_response_code(response, [400, 401]):
-#         sys.exit()
 
 
 
@@ -69,18 +58,19 @@ def download_chapter(req, api_url, manga_name, chapter):
 
     if not chapter_number:
         chapter_number = chapter['data']['attributes']['title']
-        chapter_dir = chapter_number
+        chapter_dir = f"{manga_name} - {chapter_number}"
     else:
         if "." in chapter_number:
             x = chapter_number.split(".")
-            cnum = x[0].zfill(3) + "." + x[1]
+            cnum = x[0].zfill(4) + "." + x[1]
         else:
-            cnum = chapter_number.zfill(3)
-        chapter_dir = 'Chapter ' + cnum
+            cnum = chapter_number.zfill(4)
+        chapter_dir = f"{manga_name} - c{cnum}"
 
 
     if scanlators:
-        chapter_dir += " " + "[" + " + ".join(scanlators) + "]"
+        scanlators = " + ".join(scanlators)
+        chapter_dir += f" [{scanlators}]"
 
 
     status_code = 404
@@ -103,18 +93,20 @@ def download_chapter(req, api_url, manga_name, chapter):
     base_url = response.json()['baseUrl']
     filenames = chapter['data']['attributes']['data']
 
-    if not os.path.exists(f"{manga_name}/{chapter_dir}"):
-        os.makedirs(f"{manga_name}/{chapter_dir}")
+    if not os.path.exists(f"{manga_name}"):
+        os.makedir(f"{manga_name}")
 
     pnum = 1
     for filename in filenames:
         url = f"{base_url}/data/{chapter_hash}/{filename}"
         ext = os.path.splitext(filename)[1]
-        output = f"{manga_name}/{chapter_dir}/c{cnum}_p{pnum:04}{ext}"
+        output_zip = f"{manga_name}/{chapter_dir}.cbz"
+        output_file = f"c{cnum}_p{pnum:04}{ext}"
         image = req.get(url)
-        with open(output, 'wb') as f:
-            f.write(image.content)
-        print(output)
+        z = zipfile.ZipFile(output_zip, 'a', compression=zipfile.ZIP_DEFLATED)
+        z.writestr(output_file, image.content)
+        z.close()
+        print(output_file)
         pnum += 1
 
 
@@ -177,8 +169,6 @@ def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
 def main():
 
     parser = argparse.ArgumentParser()
-    # parser.add_argument("-u", "--username", help="your mangadex username")
-    # parser.add_argument("-p", "--password", help="your mangadex password")
     parser.add_argument(dest="link", help="link to the manga or chapter")
     parser.add_argument("-s", "--start", type=float, help="chapter number to start downloading from")
     parser.add_argument("-t", "--to", type=float, help="chapter number to stop downloading after")
@@ -189,12 +179,6 @@ def main():
 
     req = requests.session()
     api_url = 'https://api.mangadex.org'
-
-    # username = args.username
-    # password = args.password
-
-    # if username and password:
-    #     login(req, api_url, username, password)
 
     link = args.link.split('/')
     manga_id = ""
