@@ -94,7 +94,7 @@ def download_chapter(req, api_url, manga_name, chapter):
     filenames = chapter['data']['attributes']['data']
 
     if not os.path.exists(f"{manga_name}"):
-        os.makedir(f"{manga_name}")
+        os.makedirs(f"{manga_name}")
 
     pnum = 1
     for filename in filenames:
