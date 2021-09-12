@@ -5,6 +5,7 @@ import os
 import argparse
 import zipfile
 
+group_list = {}
 
 def check_response_code(response, known_errors = []):
 
@@ -35,6 +36,7 @@ def get_manga_name(req, api_url, manga_id):
 
 def download_chapter(req, api_url, manga_name, chapter):
 
+    global group_list
     chapter_id = chapter['data']['id']
     chapter_hash = chapter['data']['attributes']['hash']
     scanlators = []
@@ -44,13 +46,18 @@ def download_chapter(req, api_url, manga_name, chapter):
         if relationship['type'] == "scanlation_group":
 
             group_id = relationship['id']
-            response = req.get(f"{api_url}/group/{group_id}")
+            
+            if group_id in group_list:
+                scanlators.append(group_list[group_id])
+            else:
+                response = req.get(f"{api_url}/group/{group_id}")
 
-            if check_response_code(response, [403, 404]):
-                group_info = response.json()
-                group_name = group_info['data']['attributes']['name']
-                group_name = group_name.replace('/', '_')
-                scanlators.append(group_name)
+                if check_response_code(response, [403, 404]):
+                    group_info = response.json()
+                    group_name = group_info['data']['attributes']['name']
+                    group_name = group_name.replace('/', '_')
+                    scanlators.append(group_name)
+                    group_list[group_id] = group_name
 
 
     chapter_number = chapter['data']['attributes']['chapter']
