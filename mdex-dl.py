@@ -37,16 +37,16 @@ def get_manga_name(req, api_url, manga_id):
 def download_chapter(req, api_url, manga_name, chapter):
 
     global group_list
-    chapter_id = chapter['data']['id']
-    chapter_hash = chapter['data']['attributes']['hash']
+    chapter_id = chapter['id']
+    chapter_hash = chapter['attributes']['hash']
     scanlators = []
 
-    for relationship in chapter['data']['relationships']:
+    for relationship in chapter['relationships']:
 
         if relationship['type'] == "scanlation_group":
 
             group_id = relationship['id']
-            
+
             if group_id in group_list:
                 scanlators.append(group_list[group_id])
             else:
@@ -60,11 +60,11 @@ def download_chapter(req, api_url, manga_name, chapter):
                     group_list[group_id] = group_name
 
 
-    chapter_number = chapter['data']['attributes']['chapter']
+    chapter_number = chapter['attributes']['chapter']
     cnum = ""
 
     if not chapter_number:
-        chapter_number = chapter['data']['attributes']['title']
+        chapter_number = chapter['attributes']['title']
         chapter_dir = f"{manga_name} - {chapter_number}"
     else:
         if "." in chapter_number:
@@ -98,7 +98,7 @@ def download_chapter(req, api_url, manga_name, chapter):
 
 
     base_url = response.json()['baseUrl']
-    filenames = chapter['data']['attributes']['data']
+    filenames = chapter['attributes']['data']
 
     if not os.path.exists(f"{manga_name}"):
         os.makedirs(f"{manga_name}")
@@ -108,7 +108,9 @@ def download_chapter(req, api_url, manga_name, chapter):
         url = f"{base_url}/data/{chapter_hash}/{filename}"
         ext = os.path.splitext(filename)[1]
         output_zip = f"{manga_name}/{chapter_dir}.cbz"
-        output_file = f"c{cnum}_p{pnum:04}{ext}"
+        output_file = f"p{pnum:04}{ext}"
+        if cnum:
+            output_file = f"c{cnum}_{output_file}"
         image = req.get(url)
         z = zipfile.ZipFile(output_zip, 'a', compression=zipfile.ZIP_DEFLATED)
         z.writestr(output_file, image.content)
@@ -148,15 +150,15 @@ def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
 
         chapter_info = response.json()
 
-        if not chapter_info['results']:
+        if not chapter_info['data']:
             break
 
-        for chapter in chapter_info['results']:
+        for chapter in chapter_info['data']:
 
-            chapter_number = chapter['data']['attributes']['chapter']
+            chapter_number = chapter['attributes']['chapter']
 
             if not chapter_number:
-                chapter_number = chapter['data']['attributes']['title']
+                chapter_number = chapter['attributes']['title']
             else:
                 current = float(chapter_number)
                 if current < start:
