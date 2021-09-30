@@ -100,23 +100,32 @@ def download_chapter(req, api_url, manga_name, chapter):
     base_url = response.json()['baseUrl']
     filenames = chapter['attributes']['data']
 
-    if not os.path.exists(f"{manga_name}"):
-        os.makedirs(f"{manga_name}")
+    if not filenames:
+        external_url = chapter['attributes']['externalUrl']
+        msg = f"Chapter {chapter_number} is linked externally: {external_url}"
+        print(msg)
+        return False
 
-    pnum = 1
-    for filename in filenames:
-        url = f"{base_url}/data/{chapter_hash}/{filename}"
-        ext = os.path.splitext(filename)[1]
-        output_zip = f"{manga_name}/{chapter_dir}.cbz"
-        output_file = f"p{pnum:04}{ext}"
-        if cnum:
-            output_file = f"c{cnum}_{output_file}"
-        image = req.get(url)
-        z = zipfile.ZipFile(output_zip, 'a', compression=zipfile.ZIP_DEFLATED)
-        z.writestr(output_file, image.content)
-        z.close()
-        print(output_file)
-        pnum += 1
+    else:
+        if not os.path.exists(f"{manga_name}"):
+            os.makedirs(f"{manga_name}")
+
+        pnum = 1
+        for filename in filenames:
+            url = f"{base_url}/data/{chapter_hash}/{filename}"
+            ext = os.path.splitext(filename)[1]
+            output_zip = f"{manga_name}/{chapter_dir}.cbz"
+            output_file = f"p{pnum:04}{ext}"
+            if cnum:
+                output_file = f"c{cnum}_{output_file}"
+            image = req.get(url)
+            z = zipfile.ZipFile(output_zip, 'a', compression=zipfile.ZIP_DEFLATED)
+            z.writestr(output_file, image.content)
+            z.close()
+            print(output_file)
+            pnum += 1
+
+        return True
 
 
 
@@ -128,7 +137,8 @@ def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
 
     offset = 0
     current = start
-    counter = 0
+    processed = 0
+    downloaded = 0
 
     while current < to:
 
@@ -166,12 +176,14 @@ def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
                 if current >= to:
                     break
 
-            download_chapter(req, api_url, manga_name, chapter)
-            counter += 1
+            if download_chapter(req, api_url, manga_name, chapter):
+                downloaded += 1
+            processed += 1
 
         offset += 100
 
-    print(f"Total {counter} chapters downloaded.")
+    print(f"Total processed: {processed} chapters")
+    print(f"Total downloaded: {downloaded} chapters")
 
 
 
