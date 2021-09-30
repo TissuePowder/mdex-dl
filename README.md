@@ -3,7 +3,7 @@ A simple python script to download manga from https://mangadex.org
 
 API documentation: https://api.mangadex.org/docs.html
 
-Script is tested working with the API version 5.3.1 at the time of writing this.
+Script is tested working with the API version 5.3.3
 
 ## Requirements
 Python 3.5 or up. You may need to install some modules separately such as requests.
