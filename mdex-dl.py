@@ -232,10 +232,11 @@ def main():
         response = req.get(f"{api_url}/chapter/{chapter_id}")
         if not check_response_code(response, [403, 404]):
             sys.exit()
-        chapter = response.json()
+        chapter_info = response.json()
+        chapter = chapter_info['data']
         manga_name = ""
 
-        for relationship in chapter['data']['relationships']:
+        for relationship in chapter['relationships']:
             if relationship['type'] == "manga":
                 manga_id = relationship['id']
                 manga_name = get_manga_name(req, api_url, manga_id)
