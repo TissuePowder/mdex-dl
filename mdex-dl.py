@@ -4,6 +4,7 @@ import time
 import os
 import argparse
 import zipfile
+import json
 
 group_list = {}
 
@@ -30,110 +31,121 @@ def get_manga_name(req, api_url, manga_id):
     manga_info = response.json()
     manga_name = manga_info['data']['attributes']['title']['en']
     manga_name = manga_name.replace('/', '_')
-
-    print(manga_name)
+    
     return manga_name
 
 
 
-def download_chapter(req, api_url, manga_name, chapter):
+def download_chapter(req, api_url, manga_name, chapter, page_start, page_to):
 
-    # print(chapter)
+    try:
 
-    global group_list
-    chapter_id = chapter['id']
-    scanlators = []
+        global group_list
+        chapter_id = chapter['id']
+        scanlators = []
 
-    for relationship in chapter['relationships']:
+        for relationship in chapter['relationships']:
 
-        if relationship['type'] == "scanlation_group":
+            if relationship['type'] == "scanlation_group":
 
-            group_id = relationship['id']
+                group_id = relationship['id']
 
-            if group_id in group_list:
-                scanlators.append(group_list[group_id])
+                if group_id in group_list:
+                    scanlators.append(group_list[group_id])
+                else:
+                    response = req.get(f"{api_url}/group/{group_id}")
+
+                    if check_response_code(response, [403, 404]):
+                        group_info = response.json()
+                        group_name = group_info['data']['attributes']['name']
+                        group_name = group_name.replace('/', '_')
+                        scanlators.append(group_name)
+                        group_list[group_id] = group_name
+
+
+        chapter_number = chapter['attributes']['chapter']
+        cnum = ""
+
+        if not chapter_number:
+            chapter_number = chapter['attributes']['title']
+            chapter_dir = f"{manga_name} - {chapter_number}"
+        else:
+            if "." in chapter_number:
+                x = chapter_number.split(".")
+                cnum = x[0].zfill(4) + "." + x[1]
             else:
-                response = req.get(f"{api_url}/group/{group_id}")
-
-                if check_response_code(response, [403, 404]):
-                    group_info = response.json()
-                    group_name = group_info['data']['attributes']['name']
-                    group_name = group_name.replace('/', '_')
-                    scanlators.append(group_name)
-                    group_list[group_id] = group_name
+                cnum = chapter_number.zfill(4)
+            chapter_dir = f"{manga_name} - c{cnum}"
 
 
-    chapter_number = chapter['attributes']['chapter']
-    cnum = ""
+        if scanlators:
+            scanlators = " + ".join(scanlators)
+            chapter_dir += f" [{scanlators}]"
 
-    if not chapter_number:
-        chapter_number = chapter['attributes']['title']
-        chapter_dir = f"{manga_name} - {chapter_number}"
-    else:
-        if "." in chapter_number:
-            x = chapter_number.split(".")
-            cnum = x[0].zfill(4) + "." + x[1]
+
+        status_code = 404
+        tries = 0
+        while status_code != 200:
+            if tries > 5:
+                print(f"Problem with MangaDex@Home network, couldn't fetch chapter {chapter_number}.")
+                sys.exit()
+
+            response = req.get(f"{api_url}/at-home/server/{chapter_id}")
+            status_code = response.status_code
+
+            if status_code == 200:
+                break
+            else:
+                tries += 1
+                time.sleep(3)
+
+
+        base_url = response.json()['baseUrl']
+        chapter_hash = response.json()['chapter']['hash']
+        filenames = response.json()['chapter']['data']
+
+        if not filenames:
+            external_url = chapter['attributes']['externalUrl']
+            msg = f"Chapter {chapter_number} is linked externally: {external_url}"
+            print(msg)
+            return False
+
         else:
-            cnum = chapter_number.zfill(4)
-        chapter_dir = f"{manga_name} - c{cnum}"
+            if not os.path.exists(f"{manga_name}"):
+                os.makedirs(f"{manga_name}")
+
+            pnum = 1
+            if page_start:
+                pnum = page_start - 1
+                filenames = filenames[pnum:]
+
+            for filename in filenames:
+                url = f"{base_url}/data/{chapter_hash}/{filename}"
+                ext = os.path.splitext(filename)[1]
+                output_zip = f"{manga_name}/{chapter_dir}.cbz"
+                output_file = f"p{pnum:04}{ext}"
+                if cnum:
+                    output_file = f"c{cnum}_{output_file}"
+                image = req.get(url)
+                z = zipfile.ZipFile(output_zip, 'a', compression=zipfile.ZIP_DEFLATED)
+                z.writestr(output_file, image.content)
+                z.close()
+                print(output_file)
+                pnum += 1
+                if page_to and pnum >= page_to:
+                    break
 
 
-    if scanlators:
-        scanlators = " + ".join(scanlators)
-        chapter_dir += f" [{scanlators}]"
 
-
-    status_code = 404
-    tries = 0
-    while status_code != 200:
-        if tries > 5:
-            print(f"Problem with MangaDex@Home network, couldn't fetch chapter {chapter_number}.")
-            sys.exit()
-
-        response = req.get(f"{api_url}/at-home/server/{chapter_id}")
-        status_code = response.status_code
-
-        if status_code == 200:
-            break
-        else:
-            tries += 1
-            time.sleep(3)
-
-
-    base_url = response.json()['baseUrl']
-    chapter_hash = response.json()['chapter']['hash']
-    filenames = response.json()['chapter']['data']
-
-    if not filenames:
-        external_url = chapter['attributes']['externalUrl']
-        msg = f"Chapter {chapter_number} is linked externally: {external_url}"
-        print(msg)
+            return True
+    except Exception as e:
+        print(e)
         return False
 
-    else:
-        if not os.path.exists(f"{manga_name}"):
-            os.makedirs(f"{manga_name}")
-
-        pnum = 1
-        for filename in filenames:
-            url = f"{base_url}/data/{chapter_hash}/{filename}"
-            ext = os.path.splitext(filename)[1]
-            output_zip = f"{manga_name}/{chapter_dir}.cbz"
-            output_file = f"p{pnum:04}{ext}"
-            if cnum:
-                output_file = f"c{cnum}_{output_file}"
-            image = req.get(url)
-            z = zipfile.ZipFile(output_zip, 'a', compression=zipfile.ZIP_DEFLATED)
-            z.writestr(output_file, image.content)
-            z.close()
-            print(output_file)
-            pnum += 1
-
-        return True
 
 
 
-def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
+def download_manga(req, api_url, manga_id, start, to, page_start, page_to, lang, groups, uploader, wait):
 
     manga_name = get_manga_name(req, api_url, manga_id)
     if not os.path.exists(manga_name):
@@ -149,6 +161,12 @@ def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
         params = {
             "manga" : manga_id,
             "translatedLanguage[]" : lang,
+            "contentRating[]" : ["safe", "suggestive", "erotica", "pornographic"],
+            "order[createdAt]" : "asc",
+            "order[updatedAt]" : "asc",
+            "order[publishAt]" : "asc",
+            "order[readableAt]" : "asc",
+            "order[volume]" : "asc",
             "order[chapter]" : "asc",
             "limit" : 100,
             "offset" : offset
@@ -163,8 +181,6 @@ def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
             sys.exit()
 
         chapter_info = response.json()
-
-        print(chapter_info)
 
         if not chapter_info['data']:
             break
@@ -182,8 +198,9 @@ def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
                 if current >= to:
                     break
 
-            if download_chapter(req, api_url, manga_name, chapter):
+            if download_chapter(req, api_url, manga_name, chapter, page_start, page_to):
                 downloaded += 1
+                time.sleep(wait)
             processed += 1
 
         offset += 100
@@ -199,9 +216,12 @@ def main():
     parser.add_argument(dest="link", help="link to the manga or chapter")
     parser.add_argument("-s", "--start", type=float, help="chapter number to start downloading from")
     parser.add_argument("-t", "--to", type=float, help="chapter number to stop downloading after")
+    parser.add_argument("-S", "--page-start", type=int, help="page number to start downloading from")
+    parser.add_argument("-T", "--page-to", type=int, help="page number to stop downloading after")
     parser.add_argument("-l", "--lang", help="comma separated language codes. default is en")
     parser.add_argument("-g", "--groups", help="comma separated UUID's of scanlation groups")
     parser.add_argument("-u", "--uploader", help="UUID of the uploader")
+    parser.add_argument("-w", "--wait", type=int, help="time to wait (in seconds) between chapter downloads")
     args = parser.parse_args()
 
     req = requests.session()
@@ -245,6 +265,20 @@ def main():
     else:
         to = float(9999)
 
+    page_start = None
+    page_to = None
+
+    if args.page_start != None:
+        page_start = args.page_start
+
+    if args.page_to != None:
+        page_to = args.page_to
+
+    if args.wait != None:
+        wait = args.wait
+    else:
+        wait = 3
+
     if chapter_id:
 
         response = req.get(f"{api_url}/chapter/{chapter_id}")
@@ -263,10 +297,10 @@ def main():
         if not manga_name:
             manga_name = chapter_id
 
-        download_chapter(req, api_url, manga_name, chapter)
+        download_chapter(req, api_url, manga_name, chapter, page_start, page_to)
 
     else:
-        download_manga(req, api_url, manga_id, start, to, lang, groups, uploader)
+        download_manga(req, api_url, manga_id, start, to, page_start, page_to, lang, groups, uploader, wait)
 
     print("Download finished!")
 
