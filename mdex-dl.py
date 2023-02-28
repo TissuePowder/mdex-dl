@@ -30,15 +30,18 @@ def get_manga_name(req, api_url, manga_id):
     manga_info = response.json()
     manga_name = manga_info['data']['attributes']['title']['en']
     manga_name = manga_name.replace('/', '_')
+
+    print(manga_name)
     return manga_name
 
 
 
 def download_chapter(req, api_url, manga_name, chapter):
 
+    # print(chapter)
+
     global group_list
     chapter_id = chapter['id']
-    chapter_hash = chapter['attributes']['hash']
     scanlators = []
 
     for relationship in chapter['relationships']:
@@ -98,7 +101,8 @@ def download_chapter(req, api_url, manga_name, chapter):
 
 
     base_url = response.json()['baseUrl']
-    filenames = chapter['attributes']['data']
+    chapter_hash = response.json()['chapter']['hash']
+    filenames = response.json()['chapter']['data']
 
     if not filenames:
         external_url = chapter['attributes']['externalUrl']
@@ -159,6 +163,8 @@ def download_manga(req, api_url, manga_id, start, to, lang, groups, uploader):
             sys.exit()
 
         chapter_info = response.json()
+
+        print(chapter_info)
 
         if not chapter_info['data']:
             break
