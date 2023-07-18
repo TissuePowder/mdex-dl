@@ -33,6 +33,7 @@ func NewDownloader(query Query) Downloader {
 }
 
 func NewTitleDownloader(id string, query Query) Downloader {
+	query.TitleQuery.Manga = id
 	return &TitleDownloader{
 		Url:   BaseUrl + "/chapter",
 		Query: query,

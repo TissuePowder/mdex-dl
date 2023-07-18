@@ -132,7 +132,7 @@ func (q *QueryBuilder) SetFlags() *QueryBuilder {
 
 	url := flag.Args()
 
-	fmt.Println(url)
+	// fmt.Println(url)
 
 	if len(url) != 1 {
 		fmt.Println("Pleas use proper format: mdex-dl [options] url")
