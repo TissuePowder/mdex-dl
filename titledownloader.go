@@ -56,4 +56,8 @@ func (t *TitleDownloader) StartDownloading() {
 	json.NewDecoder(res.Body).Decode(&title)
 
 	fmt.Printf("%+v\n", title)
+
+	c := t.GetChapterList()
+
+	fmt.Println(c)
 }
