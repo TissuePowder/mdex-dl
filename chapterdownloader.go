@@ -78,21 +78,22 @@ func (c *ChapterDownloader) StartDownloading() {
 	jobs := make(chan string)
 	results := make(chan error, len(chapter.Chapter.Data))
 
-	maxWorkers := 1
+	maxWorkers := c.Query.Threads
 	var wg sync.WaitGroup
 	wg.Add(maxWorkers)
 
-	dialer := &net.Dialer{
-		Timeout:   5 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
-
 	transport := &http.Transport{
-		MaxIdleConns:        maxWorkers,
-		MaxIdleConnsPerHost: maxWorkers,
-		IdleConnTimeout:     30 * time.Second,
-		DisableKeepAlives:   false,
-		Dial:                dialer.Dial,
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		MaxConnsPerHost:       maxWorkers,
+		MaxIdleConnsPerHost:   maxWorkers,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
 
 	client := &http.Client{
