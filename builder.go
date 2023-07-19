@@ -37,11 +37,16 @@ type TitleQuery struct {
 	Includes           []string `url:"includes[],omitempty"`
 }
 
+type ChapterQuery struct {
+	DataSaver bool
+	Path      string
+	Pages     []string
+}
 type Query struct {
-	DataSaver  bool
-	Threads    int
-	Url        string
-	TitleQuery TitleQuery
+	Threads      int
+	Url          string
+	TitleQuery   TitleQuery
+	ChapterQuery ChapterQuery
 }
 
 type QueryBuilder struct {
@@ -177,7 +182,7 @@ func (q *QueryBuilder) SetFlags() *QueryBuilder {
 		Chapter: "asc",
 	}
 
-	q.Query.DataSaver = *datasaver
+	q.Query.ChapterQuery.DataSaver = *datasaver
 	q.Query.Threads = *thread
 
 	url := flag.Args()

@@ -26,10 +26,9 @@ func NewDownloader(query Query) Downloader {
 	url := strings.TrimPrefix(query.Url, "https://")
 	arr := strings.Split(url, "/")
 	if arr[1] == "chapter" {
-		return NewChapterDownloader(arr[2], query)
-	} else {
-		return NewTitleDownloader(arr[2], query)
+		query.TitleQuery.Ids = []string{arr[2]}
 	}
+	return NewTitleDownloader(arr[2], query)
 }
 
 func NewTitleDownloader(id string, query Query) Downloader {

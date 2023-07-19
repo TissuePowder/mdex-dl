@@ -44,7 +44,7 @@ func (t *TitleDownloader) StartDownloading() {
 	// fmt.Println(t.Url)
 	// fmt.Println(t.Query)
 
-	c, _ := t.GetChapterList()
+	c, p := t.GetChapterList()
 
 	// fmt.Println(c)
 	// fmt.Println(p)
@@ -65,6 +65,13 @@ func (t *TitleDownloader) StartDownloading() {
 		json.NewDecoder(res.Body).Decode(&title)
 
 		res.Body.Close()
+
+
+		for _, d := range title.Data {
+			t.Query.ChapterQuery.Pages = p[d.Attributes.Chapter]
+			cDownloader := NewChapterDownloader(d.Id, t.Query)
+			cDownloader.StartDownloading()
+		}
 
 		fmt.Printf("%+v\n", title)
 

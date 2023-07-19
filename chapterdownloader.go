@@ -30,8 +30,6 @@ func DownloadPage(url string, client *http.Client) error {
 		return err
 	}
 
-	defer res.Body.Close()
-
 	arr := strings.Split(url, "/")
 	filename := arr[len(arr)-1]
 
@@ -43,6 +41,7 @@ func DownloadPage(url string, client *http.Client) error {
 	defer file.Close()
 
 	_, err = io.Copy(file, res.Body)
+	res.Body.Close()
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
