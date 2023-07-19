@@ -58,6 +58,49 @@ func (q *QueryBuilder) Build() Query {
 	return q.Query
 }
 
+func SplitChapterString(s string) ([]string, error) {
+	var arr []string
+	var builder strings.Builder
+	b := 0
+
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+
+		switch c {
+		case ',':
+			if b == 0 && builder.String() != "" {
+				arr = append(arr, builder.String())
+				builder.Reset()
+			} else {
+				builder.WriteByte(c)
+			}
+		case '[':
+			if b > 0 {
+				return nil, fmt.Errorf("not a valid filter string")
+			}
+			b++
+			builder.WriteByte(c)
+
+		case ']':
+			if b < 0 {
+				return nil, fmt.Errorf("invalid filter string")
+			}
+			b--
+			builder.WriteByte(c)
+
+		default:
+			builder.WriteByte(c)
+		}
+	}
+
+	if b != 0 {
+		return nil, fmt.Errorf("invalid filter string")
+	}
+
+	arr = append(arr, builder.String())
+	return arr, nil
+}
+
 func (q *QueryBuilder) SetFlags() *QueryBuilder {
 
 	title := flag.String("title", "", "")
@@ -94,7 +137,14 @@ func (q *QueryBuilder) SetFlags() *QueryBuilder {
 	}
 
 	if *chapter != "" {
-		q.Query.TitleQuery.Chapter = strings.Split(*chapter, ",")
+		if cList, err := SplitChapterString(*chapter); err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		} else {
+			q.Query.TitleQuery.Chapter = cList
+			fmt.Println(cList)
+		}
+
 	}
 
 	if *lang != "" {
