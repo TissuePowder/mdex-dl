@@ -17,8 +17,8 @@ type Order struct {
 }
 
 type TitleQuery struct {
-	Limit              int      `url:"limit,omitempty"`
-	Offset             int      `url:"offset,omitempty"`
+	Limit              int      `url:"limit"`
+	Offset             int      `url:"offset"`
 	Ids                []string `url:"ids[],omitempty"`
 	Title              string   `url:"title,omitempty"`
 	Groups             []string `url:"groups[],omitempty"`

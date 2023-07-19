@@ -22,9 +22,10 @@ func TraverseChapters(cMap map[string]interface{}, cAll *[]string) {
 	}
 }
 
-func (t *TitleDownloader) GetChapterList() []string {
+func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 
 	var cList []string
+	pMap := make(map[string][]string)
 
 	params := url.Values{}
 
@@ -72,6 +73,10 @@ func (t *TitleDownloader) GetChapterList() []string {
 				os.Exit(1)
 			}
 			cpart = arr[0]
+			fmt.Println(cpart)
+			if cpart == "" {
+				cpart = "-"
+			}
 			ppart = arr[1]
 			ppart = ppart[:len(ppart)-1]
 		} else {
@@ -102,12 +107,18 @@ func (t *TitleDownloader) GetChapterList() []string {
 				return n > cr
 			})
 
-			cList = append(cList, cAll[lb:ub]...)
-		} else {
+			for _, c := range cAll[lb:ub] {
+				if _, ok := pMap[c]; !ok {
+					cList = append(cList, c)
+				}
+				pMap[c] = append(pMap[c], ppart)
+			}
+
+		} else if _, ok := pMap[cpart]; !ok {
 			cList = append(cList, cpart)
 		}
 	}
 
-	return cList
+	return cList, pMap
 
 }

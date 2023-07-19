@@ -44,20 +44,37 @@ func (t *TitleDownloader) StartDownloading() {
 	// fmt.Println(t.Url)
 	// fmt.Println(t.Query)
 
-	v, _ := query.Values(t.Query.TitleQuery)
-	fullUrl := fmt.Sprintf("%s?%s", t.Url, v.Encode())
+	c, _ := t.GetChapterList()
 
-	fmt.Println(fullUrl)
+	// fmt.Println(c)
+	// fmt.Println(p)
 
-	res, _ := http.Get(fullUrl)
+	t.Query.TitleQuery.Chapter = c
 
-	var title Title
+	for {
 
-	json.NewDecoder(res.Body).Decode(&title)
+		v, _ := query.Values(t.Query.TitleQuery)
+		fullUrl := fmt.Sprintf("%s?%s", t.Url, v.Encode())
 
-	fmt.Printf("%+v\n", title)
+		fmt.Println(fullUrl)
 
-	c := t.GetChapterList()
+		res, _ := http.Get(fullUrl)
 
-	fmt.Println(c)
+		var title Title
+
+		json.NewDecoder(res.Body).Decode(&title)
+
+		res.Body.Close()
+
+		fmt.Printf("%+v\n", title)
+
+		t.Query.TitleQuery.Offset += 100
+
+		if t.Query.TitleQuery.Offset > title.Total {
+			break
+		}
+
+	}
+
+
 }
