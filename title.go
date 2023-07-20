@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/google/go-querystring/query"
@@ -45,7 +46,7 @@ func (t *TitleDownloader) StartDownloading() {
 	// fmt.Println(t.Url)
 	// fmt.Println(t.Query)
 	var titleName string
-	var scanGroup map[string]string
+	scanGroup := make(map[string]string)
 
 	c, p := t.GetChapterList()
 
@@ -72,25 +73,45 @@ func (t *TitleDownloader) StartDownloading() {
 		for _, d := range title.Data {
 
 			var wg sync.WaitGroup
+			var m sync.Mutex
+
+			var groups []string
 
 			for _, r := range d.Relationships {
 				if r.Type == "manga" {
 					if titleName == "" {
 						wg.Add(1)
-						go GetTitleName(r.Id, &titleName, &wg)
+						go GetTitleName(r.Id, &titleName, &wg, &m)
 					}
 				} else if r.Type == "scanlation_group" {
 					if _, ok := scanGroup[r.Id]; !ok {
 						wg.Add(1)
-						go GetScanGroupName(r.Id, &scanGroup, &wg)
+						go GetScanGroupName(r.Id, &scanGroup, &groups, &wg, &m)
+					} else {
+						groups = append(groups, scanGroup[r.Id])
 					}
 				}
 			}
 
 			wg.Wait()
 
+			gstring := strings.Join(groups, " + ")
+
+			d.Attributes.Chapter = strings.Replace(d.Attributes.Chapter, ",", ".", -1)
+
+			carr := strings.Split(d.Attributes.Chapter, ".")
+
+			cstr := fmt.Sprintf("%04s", carr[0])
+
+			if len(carr) > 1 {
+				cstr = cstr + "." + carr[1]
+			}
+
+			path := fmt.Sprintf("%s/Chapter %s [%s]", titleName, cstr, gstring)
+			fmt.Println(path)
 
 
+			t.Query.ChapterQuery.Path = path
 			t.Query.ChapterQuery.Pages = p[d.Attributes.Chapter]
 			cDownloader := NewChapterDownloader(d.Id, t.Query)
 			cDownloader.StartDownloading()

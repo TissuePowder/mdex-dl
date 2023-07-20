@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func TraverseChapters(cMap map[string]interface{}, cAll *[]string) {
@@ -121,4 +122,46 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 
 	return cList, pMap
 
+}
+
+type ScanGroup struct {
+	Data struct {
+		Attributes struct {
+			Name string `json:"name"`
+		} `json:"attributes"`
+	} `json:"data"`
+}
+
+func GetScanGroupName(id string, scanGroup *map[string]string, groups *[]string, wg *sync.WaitGroup, m *sync.Mutex) {
+	defer wg.Done()
+	var d ScanGroup
+	res, _ := http.Get(BaseUrl + "/group/" + id)
+	json.NewDecoder(res.Body).Decode(&d)
+	res.Body.Close()
+	m.Lock()
+	name := strings.Replace(d.Data.Attributes.Name, "/", "_", -1)
+	(*scanGroup)[id] = name
+	*groups = append(*groups, name)
+	m.Unlock()
+}
+
+type TitleInfo struct {
+	Data struct {
+		Attributes struct {
+			Title struct {
+				En string `json:"en"`
+			} `json:"title"`
+		} `json:"attributes"`
+	} `json:"data"`
+}
+
+func GetTitleName(id string, titleName *string, wg *sync.WaitGroup, m *sync.Mutex) {
+	defer wg.Done()
+	var d TitleInfo
+	res, _ := http.Get(BaseUrl + "/manga/" + id)
+	json.NewDecoder(res.Body).Decode(&d)
+	res.Body.Close()
+	m.Lock()
+	*titleName = strings.Replace(d.Data.Attributes.Title.En, "/", "_", -1)
+	m.Unlock()
 }
