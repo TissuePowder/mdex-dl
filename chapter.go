@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,16 +24,31 @@ type Chapter struct {
 	} `json:"chapter"`
 }
 
-func DownloadPage(url string, client *http.Client) error {
+type Image struct {
+	Url  string
+	Path string
+	Idx  int
+}
 
-	res, err := client.Get(url)
+func DownloadPage(image Image, client *http.Client) error {
+
+	res, err := client.Get(image.Url)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
 
-	arr := strings.Split(url, "/")
-	filename := arr[len(arr)-1]
+	ext := filepath.Ext(image.Url)
+
+	filename := fmt.Sprintf("%s_p%04d%s", image.Path, image.Idx+1, ext)
+
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		err := os.MkdirAll(filepath.Dir(filename), 0775)
+		if err != nil {
+			fmt.Println(err.Error())
+			return err
+		}
+	}
 
 	file, err := os.Create(filename)
 	if err != nil {
@@ -41,7 +58,9 @@ func DownloadPage(url string, client *http.Client) error {
 	defer file.Close()
 
 	_, err = io.Copy(file, res.Body)
+
 	res.Body.Close()
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
@@ -51,31 +70,17 @@ func DownloadPage(url string, client *http.Client) error {
 	return nil
 }
 
-func Worker(id int, jobs <-chan string, results chan<- error, client *http.Client, wg *sync.WaitGroup) {
+func Worker(id int, jobs <-chan Image, results chan<- error, client *http.Client, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for url := range jobs {
-		err := DownloadPage(url, client)
+	for job := range jobs {
+		err := DownloadPage(job, client)
 		results <- err
-		// fmt.Println(id, url)
 	}
 
 }
 
 func (c *ChapterDownloader) StartDownloading() {
-	start := time.Now()
-	fmt.Println("chapter downloader")
-	fmt.Println(c.Url)
-	fmt.Println(c.Query)
-
-	var chapter Chapter
-	res, _ := http.Get(c.Url)
-	json.NewDecoder(res.Body).Decode(&chapter)
-	res.Body.Close()
-	// fmt.Println(chapter)
-
-	jobs := make(chan string)
-	results := make(chan error, len(chapter.Chapter.Data))
 
 	maxWorkers := c.Query.Threads
 	var wg sync.WaitGroup
@@ -88,8 +93,8 @@ func (c *ChapterDownloader) StartDownloading() {
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
 		MaxIdleConns:          100,
-		MaxConnsPerHost:       maxWorkers,
-		MaxIdleConnsPerHost:   maxWorkers,
+		MaxConnsPerHost:       100,
+		MaxIdleConnsPerHost:   100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
@@ -99,19 +104,102 @@ func (c *ChapterDownloader) StartDownloading() {
 		Transport: transport,
 	}
 
+	var chapter Chapter
+	res, err := client.Get(c.Url)
+
+	// fmt.Println(res.StatusCode)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	json.NewDecoder(res.Body).Decode(&chapter)
+	res.Body.Close()
+	// fmt.Println(chapter)
+
+	jobs := make(chan Image)
+	results := make(chan error, len(chapter.Chapter.Data))
+
 	for i := 1; i <= maxWorkers; i++ {
 		go Worker(i, jobs, results, client, &wg)
 	}
 
-	for _, file := range chapter.Chapter.Data {
-		fullUrl := fmt.Sprintf("%s/data/%s/%s", chapter.BaseUrl, chapter.Chapter.Hash, file)
-		jobs <- fullUrl
+	var coll []string
+	var ds string
+
+	if c.Query.ChapterQuery.DataSaver {
+		coll = chapter.Chapter.DataSaver
+		ds = "data-saver"
+	} else {
+		coll = chapter.Chapter.Data
+		ds = "data"
+	}
+
+	var pages []string
+
+	for _, p := range c.Query.ChapterQuery.Pages {
+		if p != "" {
+			pages = append(pages, p)
+		}
+	}
+
+	if len(pages) > 0 {
+
+		fmt.Println("this is page array", pages)
+
+		for _, p := range pages {
+
+			if strings.Contains(p, "-") {
+				arr := strings.Split(p, "-")
+				var lb, ub int
+				if arr[0] == "" {
+					lb = 0
+				} else {
+					lb, _ = strconv.Atoi(arr[0])
+					lb -= 1
+				}
+
+				if arr[1] == "" {
+					ub = len(coll)
+				} else {
+					ub, _ = strconv.Atoi(arr[1])
+					ub += 1
+					if ub > len(coll) {
+						ub = len(coll)
+					}
+				}
+
+				for i, img := range coll[lb:ub] {
+					fullUrl := fmt.Sprintf("%s/%s/%s/%s", chapter.BaseUrl, ds, chapter.Chapter.Hash, img)
+					jobs <- Image{fullUrl, c.Query.ChapterQuery.Path, i}
+				}
+
+			} else {
+				i, _ := strconv.Atoi(p)
+				if i > len(coll) {
+					fmt.Println("in continue block", i, p)
+					fmt.Println(chapter.Chapter.Data, c.Url)
+					continue
+				}
+				// fmt.Println(p, "index out of range")
+				img := coll[i-1]
+				fullUrl := fmt.Sprintf("%s/%s/%s/%s", chapter.BaseUrl, ds, chapter.Chapter.Hash, img)
+				jobs <- Image{fullUrl, c.Query.ChapterQuery.Path, i - 1}
+			}
+
+		}
+
+	} else {
+
+		for i, img := range coll {
+			fullUrl := fmt.Sprintf("%s/%s/%s/%s", chapter.BaseUrl, ds, chapter.Chapter.Hash, img)
+			jobs <- Image{fullUrl, c.Query.ChapterQuery.Path, i}
+		}
+
 	}
 
 	close(jobs)
 	wg.Wait()
 	close(results)
-
-	fmt.Println(time.Since(start))
 
 }

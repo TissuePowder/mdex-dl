@@ -1,6 +1,13 @@
 package main
 
+import (
+	"fmt"
+	"time"
+)
+
 func main() {
+
+	start := time.Now()
 
 	builder := NewQueryBuilder()
 
@@ -11,4 +18,6 @@ func main() {
 	downloader := NewDownloader(query)
 
 	downloader.StartDownloading()
+
+	fmt.Println("Total time:", time.Since(start))
 }

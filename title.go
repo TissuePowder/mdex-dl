@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/go-querystring/query"
 )
@@ -42,16 +43,11 @@ type Title struct {
 }
 
 func (t *TitleDownloader) StartDownloading() {
-	// fmt.Println("title downloader")
-	// fmt.Println(t.Url)
-	// fmt.Println(t.Query)
+
 	var titleName string
 	scanGroup := make(map[string]string)
 
 	c, p := t.GetChapterList()
-
-	// fmt.Println(c)
-	// fmt.Println(p)
 
 	t.Query.TitleQuery.Chapter = c
 
@@ -107,17 +103,18 @@ func (t *TitleDownloader) StartDownloading() {
 				cstr = cstr + "." + carr[1]
 			}
 
-			path := fmt.Sprintf("%s/Chapter %s [%s]", titleName, cstr, gstring)
-			fmt.Println(path)
-
+			path := fmt.Sprintf("%s/Ch.%s [%s]/c%s", titleName, cstr, gstring, cstr)
+			// fmt.Println(path)
 
 			t.Query.ChapterQuery.Path = path
 			t.Query.ChapterQuery.Pages = p[d.Attributes.Chapter]
 			cDownloader := NewChapterDownloader(d.Id, t.Query)
+			t := time.Now()
 			cDownloader.StartDownloading()
+			fmt.Printf("chapter %s download time: %s", d.Attributes.Chapter, time.Since(t).String())
 		}
 
-		fmt.Printf("%+v\n", title)
+		// fmt.Printf("%+v\n", title)
 
 		t.Query.TitleQuery.Offset += 100
 

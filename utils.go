@@ -112,7 +112,7 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 				if _, ok := pMap[c]; !ok {
 					cList = append(cList, c)
 				}
-				pMap[c] = append(pMap[c], ppart)
+				pMap[c] = append(pMap[c], strings.Split(ppart, ",")...)
 			}
 
 		} else if _, ok := pMap[cpart]; !ok {
