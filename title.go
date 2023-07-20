@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/google/go-querystring/query"
 )
@@ -43,6 +44,8 @@ func (t *TitleDownloader) StartDownloading() {
 	// fmt.Println("title downloader")
 	// fmt.Println(t.Url)
 	// fmt.Println(t.Query)
+	var titleName string
+	var scanGroup map[string]string
 
 	c, p := t.GetChapterList()
 
@@ -66,8 +69,28 @@ func (t *TitleDownloader) StartDownloading() {
 
 		res.Body.Close()
 
-
 		for _, d := range title.Data {
+
+			var wg sync.WaitGroup
+
+			for _, r := range d.Relationships {
+				if r.Type == "manga" {
+					if titleName == "" {
+						wg.Add(1)
+						go GetTitleName(r.Id, &titleName, &wg)
+					}
+				} else if r.Type == "scanlation_group" {
+					if _, ok := scanGroup[r.Id]; !ok {
+						wg.Add(1)
+						go GetScanGroupName(r.Id, &scanGroup, &wg)
+					}
+				}
+			}
+
+			wg.Wait()
+
+
+
 			t.Query.ChapterQuery.Pages = p[d.Attributes.Chapter]
 			cDownloader := NewChapterDownloader(d.Id, t.Query)
 			cDownloader.StartDownloading()
@@ -82,6 +105,5 @@ func (t *TitleDownloader) StartDownloading() {
 		}
 
 	}
-
 
 }
