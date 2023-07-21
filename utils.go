@@ -112,6 +112,10 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 				return n > cr
 			})
 
+			if lb > ub {
+				lb, ub = ub, lb
+			}
+
 			for _, c := range cAll[lb:ub] {
 				if _, ok := pMap[c]; !ok {
 					cList = append(cList, c)
