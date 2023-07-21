@@ -32,9 +32,7 @@ type Image struct {
 	Idx  int
 }
 
-func CalcHash(filePath string, m *sync.Mutex) (string, error) {
-
-	m.Lock()
+func CalcHash(filePath string) (string, error) {
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -50,12 +48,10 @@ func CalcHash(filePath string, m *sync.Mutex) (string, error) {
 	hashInBytes := hash.Sum(nil)
 	hashString := hex.EncodeToString(hashInBytes)
 
-	m.Unlock()
-
 	return hashString, nil
 }
 
-func DownloadPage(image Image, client *http.Client, m *sync.Mutex) error {
+func DownloadPage(image Image, client *http.Client) error {
 
 	res, err := client.Get(image.Url)
 	if err != nil {
@@ -78,7 +74,7 @@ func DownloadPage(image Image, client *http.Client, m *sync.Mutex) error {
 		withoutExt := strings.Split(img, ".")[0]
 		origHash := strings.Split(withoutExt, "-")[1]
 		// fmt.Println(origHash)
-		existHash, err := CalcHash(filename, m)
+		existHash, err := CalcHash(filename)
 		if err != nil {
 			fmt.Println(err.Error())
 			return err
@@ -108,10 +104,10 @@ func DownloadPage(image Image, client *http.Client, m *sync.Mutex) error {
 	return nil
 }
 
-func Worker(id int, jobs <-chan Image, results chan<- error, client *http.Client, wg *sync.WaitGroup, m *sync.Mutex) {
+func Worker(id int, jobs <-chan Image, results chan<- error, client *http.Client, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for job := range jobs {
-		err := DownloadPage(job, client, m)
+		err := DownloadPage(job, client)
 		results <- err
 	}
 
@@ -121,7 +117,6 @@ func (c *ChapterDownloader) StartDownloading() {
 
 	maxWorkers := c.Query.Threads
 	var wg sync.WaitGroup
-	var m sync.Mutex
 	wg.Add(maxWorkers)
 
 	transport := &http.Transport{
@@ -183,7 +178,7 @@ func (c *ChapterDownloader) StartDownloading() {
 	results := make(chan error, len(chapter.Chapter.Data))
 
 	for i := 1; i <= maxWorkers; i++ {
-		go Worker(i, jobs, results, client, &wg, &m)
+		go Worker(i, jobs, results, client, &wg)
 	}
 
 	var coll []string
@@ -210,6 +205,7 @@ func (c *ChapterDownloader) StartDownloading() {
 	if len(pages) > 0 {
 
 		// fmt.Println("this is page array", pages)
+		var pagesSerialized, pagesUniq []int
 
 		for _, p := range pages {
 
@@ -217,17 +213,15 @@ func (c *ChapterDownloader) StartDownloading() {
 				arr := strings.Split(p, "-")
 				var lb, ub int
 				if arr[0] == "" {
-					lb = 0
+					lb = 1
 				} else {
 					lb, _ = strconv.Atoi(arr[0])
-					lb -= 1
 				}
 
 				if arr[1] == "" {
 					ub = len(coll)
 				} else {
 					ub, _ = strconv.Atoi(arr[1])
-					// ub += 1
 					if ub > len(coll) {
 						ub = len(coll)
 					}
@@ -235,11 +229,8 @@ func (c *ChapterDownloader) StartDownloading() {
 
 				// fmt.Println(lb, ub)
 
-				for i := lb; i < ub; i++ {
-					img := coll[i]
-					fullUrl := fmt.Sprintf("%s/%s/%s/%s", chapter.BaseUrl, ds, chapter.Chapter.Hash, img)
-					// fmt.Println(fullUrl, i)
-					jobs <- Image{fullUrl, c.Query.ChapterQuery.Path, i}
+				for i := lb; i <= ub; i++ {
+					pagesSerialized = append(pagesSerialized, i)
 				}
 
 			} else {
@@ -249,12 +240,25 @@ func (c *ChapterDownloader) StartDownloading() {
 					// fmt.Println(chapter.Chapter.Data, c.Url)
 					continue
 				}
-				// fmt.Println(p)
-				img := coll[i-1]
-				fullUrl := fmt.Sprintf("%s/%s/%s/%s", chapter.BaseUrl, ds, chapter.Chapter.Hash, img)
-				jobs <- Image{fullUrl, c.Query.ChapterQuery.Path, i - 1}
+				pagesSerialized = append(pagesSerialized, i)
 			}
 
+		}
+
+		mp := make(map[int]bool)
+		for _, v := range pagesSerialized {
+			if _, ok := mp[v]; !ok {
+				mp[v] = true
+				pagesUniq = append(pagesUniq, v)
+			}
+		}
+
+		// fmt.Println(pagesSerialized, pagesUniq)
+
+		for _, i := range pagesUniq {
+			img := coll[i-1]
+			fullUrl := fmt.Sprintf("%s/%s/%s/%s", chapter.BaseUrl, ds, chapter.Chapter.Hash, img)
+			jobs <- Image{fullUrl, c.Query.ChapterQuery.Path, i - 1}
 		}
 
 	} else {
