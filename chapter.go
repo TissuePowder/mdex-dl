@@ -167,6 +167,8 @@ func (c *ChapterDownloader) StartDownloading() {
 		}
 	}
 
+	// fmt.Println(pages)
+
 	if len(pages) > 0 {
 
 		// fmt.Println("this is page array", pages)
@@ -187,14 +189,18 @@ func (c *ChapterDownloader) StartDownloading() {
 					ub = len(coll)
 				} else {
 					ub, _ = strconv.Atoi(arr[1])
-					ub += 1
+					// ub += 1
 					if ub > len(coll) {
 						ub = len(coll)
 					}
 				}
 
-				for i, img := range coll[lb:ub] {
+				// fmt.Println(lb, ub)
+
+				for i := lb; i < ub; i++ {
+					img := coll[i]
 					fullUrl := fmt.Sprintf("%s/%s/%s/%s", chapter.BaseUrl, ds, chapter.Chapter.Hash, img)
+					// fmt.Println(fullUrl, i)
 					jobs <- Image{fullUrl, c.Query.ChapterQuery.Path, i}
 				}
 
@@ -205,7 +211,7 @@ func (c *ChapterDownloader) StartDownloading() {
 					// fmt.Println(chapter.Chapter.Data, c.Url)
 					continue
 				}
-				// fmt.Println(p, "index out of range")
+				// fmt.Println(p)
 				img := coll[i-1]
 				fullUrl := fmt.Sprintf("%s/%s/%s/%s", chapter.BaseUrl, ds, chapter.Chapter.Hash, img)
 				jobs <- Image{fullUrl, c.Query.ChapterQuery.Path, i - 1}
