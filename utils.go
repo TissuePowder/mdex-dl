@@ -67,6 +67,8 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 		var cpart, ppart string
 		var cl, cr float64
 
+		// fmt.Println(str)
+
 		if strings.ContainsRune(str, '[') {
 			arr := strings.Split(str, "[")
 			if len(arr) > 2 {
@@ -83,6 +85,8 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 		} else {
 			cpart = str
 		}
+
+		// fmt.Println(cpart, ppart)
 
 		if strings.ContainsRune(cpart, '-') {
 			arr := strings.Split(cpart, "-")
@@ -117,8 +121,13 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 
 		} else if _, ok := pMap[cpart]; !ok {
 			cList = append(cList, cpart)
+			pMap[cpart] = append(pMap[cpart], strings.Split(ppart, ",")...)
+		} else {
+			pMap[cpart] = append(pMap[cpart], strings.Split(ppart, ",")...)
 		}
 	}
+
+	// fmt.Println(cList, pMap)
 
 	return cList, pMap
 
