@@ -106,7 +106,13 @@ func (t *TitleDownloader) StartDownloading() {
 			if gstring == "" {
 				gstring = "No Group"
 			}
-			path := fmt.Sprintf("%s/Ch.%s [%s]/c%s", titleName, cstr, gstring, cstr)
+
+			var path string
+			if t.Query.NoChapterDir {
+				path = fmt.Sprintf("%s/c%s_[%s]", titleName, cstr, gstring)
+			} else {
+				path = fmt.Sprintf("%s/Ch.%s [%s]/c%s", titleName, cstr, gstring, cstr)
+			}
 			// fmt.Println(path)
 
 			t.Query.ChapterQuery.Path = path

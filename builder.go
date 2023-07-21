@@ -43,6 +43,7 @@ type ChapterQuery struct {
 	Pages     []string
 }
 type Query struct {
+	NoChapterDir bool
 	Threads      int
 	Url          string
 	TitleQuery   TitleQuery
@@ -121,6 +122,7 @@ func (q *QueryBuilder) SetFlags() *QueryBuilder {
 	published := flag.String("published-since", "", "")
 
 	datasaver := flag.Bool("data-saver", false, "")
+	nochapterdir := flag.Bool("no-chapter-dir", false, "")
 	thread := flag.Int("thread", 5, "")
 
 	flag.Parse()
@@ -183,6 +185,7 @@ func (q *QueryBuilder) SetFlags() *QueryBuilder {
 	}
 
 	q.Query.ChapterQuery.DataSaver = *datasaver
+	q.Query.NoChapterDir = *nochapterdir
 	q.Query.Threads = *thread
 
 	url := flag.Args()
