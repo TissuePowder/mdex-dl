@@ -105,7 +105,26 @@ func (c *ChapterDownloader) StartDownloading() {
 	}
 
 	var chapter Chapter
-	res, err := client.Get(c.Url)
+
+	var res *http.Response
+	var err error
+
+	for {
+		res, err = client.Get(c.Url)
+		if res.StatusCode == 200 {
+			break
+		} else if res.StatusCode == 429 {
+			retryAfterStr := res.Header.Get("X-RateLimit-Retry-After")
+			retryAfterUnix, _ := strconv.ParseInt(retryAfterStr, 10, 64)
+			currentUnixTime := time.Now().Unix()
+			durationSeconds := retryAfterUnix - currentUnixTime
+			if durationSeconds > 0 {
+				time.Sleep(time.Duration(durationSeconds) * time.Second)
+			}
+		} else {
+			fmt.Println(res.StatusCode, res.Status, err)
+		}
+	}
 
 	// fmt.Println(res.StatusCode)
 
