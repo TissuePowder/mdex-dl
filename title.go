@@ -56,7 +56,7 @@ func (t *TitleDownloader) StartDownloading() {
 		v, _ := query.Values(t.Query.TitleQuery)
 		fullUrl := fmt.Sprintf("%s?%s", t.Url, v.Encode())
 
-		fmt.Println(fullUrl)
+		// fmt.Println(fullUrl)
 
 		res, _ := http.Get(fullUrl)
 
@@ -103,6 +103,9 @@ func (t *TitleDownloader) StartDownloading() {
 				cstr = cstr + "." + carr[1]
 			}
 
+			if gstring == "" {
+				gstring = "No Group"
+			}
 			path := fmt.Sprintf("%s/Ch.%s [%s]/c%s", titleName, cstr, gstring, cstr)
 			// fmt.Println(path)
 
@@ -111,7 +114,7 @@ func (t *TitleDownloader) StartDownloading() {
 			cDownloader := NewChapterDownloader(d.Id, t.Query)
 			t := time.Now()
 			cDownloader.StartDownloading()
-			fmt.Printf("chapter %s download time: %s", d.Attributes.Chapter, time.Since(t).String())
+			fmt.Printf("chapter %s download time: %s\n", d.Attributes.Chapter, time.Since(t).String())
 		}
 
 		// fmt.Printf("%+v\n", title)

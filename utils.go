@@ -40,7 +40,7 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 
 	url := fmt.Sprintf("%s/manga/%s/aggregate?%s", BaseUrl, t.Query.TitleQuery.Manga, params.Encode())
 
-	fmt.Println(url)
+	// fmt.Println(url)
 
 	res, _ := http.Get(url)
 
@@ -70,11 +70,11 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 		if strings.ContainsRune(str, '[') {
 			arr := strings.Split(str, "[")
 			if len(arr) > 2 {
-				fmt.Println("error")
+				fmt.Println("Invalid chapter string format")
 				os.Exit(1)
 			}
 			cpart = arr[0]
-			fmt.Println(cpart)
+			// fmt.Println(cpart)
 			if cpart == "" {
 				cpart = "-"
 			}

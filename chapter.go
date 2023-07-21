@@ -111,6 +111,10 @@ func (c *ChapterDownloader) StartDownloading() {
 
 	for {
 		res, err = client.Get(c.Url)
+		if err != nil {
+			fmt.Println(err.Error())
+			time.Sleep(time.Duration(3) * time.Second)
+		}
 		if res.StatusCode == 200 {
 			break
 		} else if res.StatusCode == 429 {
@@ -119,6 +123,7 @@ func (c *ChapterDownloader) StartDownloading() {
 			currentUnixTime := time.Now().Unix()
 			durationSeconds := retryAfterUnix - currentUnixTime
 			if durationSeconds > 0 {
+				fmt.Printf("Hit rate limit. Waiting %ds before continuing.\n", durationSeconds)
 				time.Sleep(time.Duration(durationSeconds) * time.Second)
 			}
 		} else {
@@ -164,7 +169,7 @@ func (c *ChapterDownloader) StartDownloading() {
 
 	if len(pages) > 0 {
 
-		fmt.Println("this is page array", pages)
+		// fmt.Println("this is page array", pages)
 
 		for _, p := range pages {
 
@@ -196,8 +201,8 @@ func (c *ChapterDownloader) StartDownloading() {
 			} else {
 				i, _ := strconv.Atoi(p)
 				if i > len(coll) {
-					fmt.Println("in continue block", i, p)
-					fmt.Println(chapter.Chapter.Data, c.Url)
+					// fmt.Println("in continue block", i, p)
+					// fmt.Println(chapter.Chapter.Data, c.Url)
 					continue
 				}
 				// fmt.Println(p, "index out of range")

@@ -147,7 +147,7 @@ func (q *QueryBuilder) SetFlags() *QueryBuilder {
 			os.Exit(1)
 		} else {
 			q.Query.TitleQuery.Chapter = cList
-			fmt.Println(cList)
+			// fmt.Println(cList)
 		}
 
 	}
