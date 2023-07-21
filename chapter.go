@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,7 +32,30 @@ type Image struct {
 	Idx  int
 }
 
-func DownloadPage(image Image, client *http.Client) error {
+func CalcHash(filePath string, m *sync.Mutex) (string, error) {
+
+	m.Lock()
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+
+	hashInBytes := hash.Sum(nil)
+	hashString := hex.EncodeToString(hashInBytes)
+
+	m.Unlock()
+
+	return hashString, nil
+}
+
+func DownloadPage(image Image, client *http.Client, m *sync.Mutex) error {
 
 	res, err := client.Get(image.Url)
 	if err != nil {
@@ -47,6 +72,19 @@ func DownloadPage(image Image, client *http.Client) error {
 		if err != nil {
 			fmt.Println(err.Error())
 			return err
+		}
+	} else {
+		img := filepath.Base(image.Url)
+		withoutExt := strings.Split(img, ".")[0]
+		origHash := strings.Split(withoutExt, "-")[1]
+		// fmt.Println(origHash)
+		existHash, err := CalcHash(filename, m)
+		if err != nil {
+			fmt.Println(err.Error())
+			return err
+		}
+		if origHash == existHash {
+			return nil
 		}
 	}
 
@@ -70,11 +108,10 @@ func DownloadPage(image Image, client *http.Client) error {
 	return nil
 }
 
-func Worker(id int, jobs <-chan Image, results chan<- error, client *http.Client, wg *sync.WaitGroup) {
+func Worker(id int, jobs <-chan Image, results chan<- error, client *http.Client, wg *sync.WaitGroup, m *sync.Mutex) {
 	defer wg.Done()
-
 	for job := range jobs {
-		err := DownloadPage(job, client)
+		err := DownloadPage(job, client, m)
 		results <- err
 	}
 
@@ -84,6 +121,7 @@ func (c *ChapterDownloader) StartDownloading() {
 
 	maxWorkers := c.Query.Threads
 	var wg sync.WaitGroup
+	var m sync.Mutex
 	wg.Add(maxWorkers)
 
 	transport := &http.Transport{
@@ -145,7 +183,7 @@ func (c *ChapterDownloader) StartDownloading() {
 	results := make(chan error, len(chapter.Chapter.Data))
 
 	for i := 1; i <= maxWorkers; i++ {
-		go Worker(i, jobs, results, client, &wg)
+		go Worker(i, jobs, results, client, &wg, &m)
 	}
 
 	var coll []string
