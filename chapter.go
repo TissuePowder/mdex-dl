@@ -81,6 +81,12 @@ func DownloadPage(image Image, client *MdClient) error {
 		}
 		if origHash == existHash {
 			return nil
+		} else {
+			fmt.Println("hash mismatch")
+			err := os.Rename(filename, filename + ".bak")
+			if err != nil {
+				return err
+			}
 		}
 	}
 

@@ -42,7 +42,12 @@ func (t *TitleDownloader) GetChapterList() ([]string, map[string][]string) {
 
 	// fmt.Println(url)
 
-	res, _ := http.Get(url)
+	res, err := t.Client.Get(url)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 
 	var data map[string]interface{}
 
