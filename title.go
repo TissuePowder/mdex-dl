@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -93,6 +94,8 @@ func (t *TitleDownloader) StartDownloading() {
 			}
 
 			wg.Wait()
+
+			sort.Strings(groups)
 
 			gstring := strings.Join(groups, " + ")
 
