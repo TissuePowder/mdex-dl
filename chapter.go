@@ -57,6 +57,7 @@ func DownloadPage(image Image, client *MdClient) error {
 		fmt.Println(err.Error())
 		return err
 	}
+	defer res.Body.Close()
 
 	ext := filepath.Ext(image.Url)
 
@@ -92,8 +93,6 @@ func DownloadPage(image Image, client *MdClient) error {
 
 	_, err = io.Copy(file, res.Body)
 
-	res.Body.Close()
-
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
@@ -117,24 +116,6 @@ func (c *ChapterDownloader) StartDownloading() {
 	maxWorkers := c.Query.Threads
 	var wg sync.WaitGroup
 	wg.Add(maxWorkers)
-
-	// transport := &http.Transport{
-	// 	Proxy: http.ProxyFromEnvironment,
-	// 	DialContext: (&net.Dialer{
-	// 		Timeout:   30 * time.Second,
-	// 		KeepAlive: 30 * time.Second,
-	// 	}).DialContext,
-	// 	MaxIdleConns:          100,
-	// 	MaxConnsPerHost:       100,
-	// 	MaxIdleConnsPerHost:   100,
-	// 	IdleConnTimeout:       90 * time.Second,
-	// 	TLSHandshakeTimeout:   10 * time.Second,
-	// 	ExpectContinueTimeout: 1 * time.Second,
-	// }
-
-	// client := &http.Client{
-	// 	Transport: transport,
-	// }
 
 	var chapter Chapter
 
