@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -58,7 +57,7 @@ func (t *TitleDownloader) StartDownloading() {
 
 		// fmt.Println(fullUrl)
 
-		res, _ := http.Get(fullUrl)
+		res, _ := t.Client.Get(fullUrl)
 
 		var title Title
 
@@ -117,7 +116,7 @@ func (t *TitleDownloader) StartDownloading() {
 
 			t.Query.ChapterQuery.Path = path
 			t.Query.ChapterQuery.Pages = p[d.Attributes.Chapter]
-			cDownloader := NewChapterDownloader(d.Id, t.Query)
+			cDownloader := NewChapterDownloader(d.Id, t.Client, t.Query)
 			t := time.Now()
 			cDownloader.StartDownloading()
 			fmt.Printf("chapter %s download time: %s\n", d.Attributes.Chapter, time.Since(t).String())

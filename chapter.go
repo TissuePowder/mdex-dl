@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -51,7 +50,7 @@ func CalcHash(filePath string) (string, error) {
 	return hashString, nil
 }
 
-func DownloadPage(image Image, client *http.Client) error {
+func DownloadPage(image Image, client *MdClient) error {
 
 	res, err := client.Get(image.Url)
 	if err != nil {
@@ -104,7 +103,7 @@ func DownloadPage(image Image, client *http.Client) error {
 	return nil
 }
 
-func Worker(id int, jobs <-chan Image, results chan<- error, client *http.Client, wg *sync.WaitGroup) {
+func Worker(id int, jobs <-chan Image, results chan<- error, client *MdClient, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for job := range jobs {
 		err := DownloadPage(job, client)
@@ -119,23 +118,23 @@ func (c *ChapterDownloader) StartDownloading() {
 	var wg sync.WaitGroup
 	wg.Add(maxWorkers)
 
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		MaxIdleConns:          100,
-		MaxConnsPerHost:       100,
-		MaxIdleConnsPerHost:   100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
+	// transport := &http.Transport{
+	// 	Proxy: http.ProxyFromEnvironment,
+	// 	DialContext: (&net.Dialer{
+	// 		Timeout:   30 * time.Second,
+	// 		KeepAlive: 30 * time.Second,
+	// 	}).DialContext,
+	// 	MaxIdleConns:          100,
+	// 	MaxConnsPerHost:       100,
+	// 	MaxIdleConnsPerHost:   100,
+	// 	IdleConnTimeout:       90 * time.Second,
+	// 	TLSHandshakeTimeout:   10 * time.Second,
+	// 	ExpectContinueTimeout: 1 * time.Second,
+	// }
 
-	client := &http.Client{
-		Transport: transport,
-	}
+	// client := &http.Client{
+	// 	Transport: transport,
+	// }
 
 	var chapter Chapter
 
@@ -143,7 +142,7 @@ func (c *ChapterDownloader) StartDownloading() {
 	var err error
 
 	for {
-		res, err = client.Get(c.Url)
+		res, err = c.Client.Get(c.Url)
 		if err != nil {
 			fmt.Println(err.Error())
 			time.Sleep(time.Duration(3) * time.Second)
@@ -178,7 +177,7 @@ func (c *ChapterDownloader) StartDownloading() {
 	results := make(chan error, len(chapter.Chapter.Data))
 
 	for i := 1; i <= maxWorkers; i++ {
-		go Worker(i, jobs, results, client, &wg)
+		go Worker(i, jobs, results, c.Client, &wg)
 	}
 
 	var coll []string

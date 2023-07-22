@@ -15,7 +15,9 @@ func main() {
 
 	query := builder.Build()
 
-	downloader := NewDownloader(query)
+	client := NewMdClient()
+
+	downloader := NewDownloader(client, query)
 
 	downloader.StartDownloading()
 
