@@ -7,8 +7,7 @@ import (
 	"strings"
 	"time"
 
-	// "golang.org/x/time/rate"
-	rate "github.com/projectdiscovery/ratelimit"
+	"golang.org/x/time/rate"
 )
 
 type MdClient struct {
@@ -38,7 +37,7 @@ func NewMdClient() *MdClient {
 	}
 
 	rlMap := map[string]*rate.Limiter{
-		"/at-home/server/": rate.New(context.Background(), 38, time.Minute),
+		"/at-home/server/": rate.NewLimiter(rate.Every(time.Minute/38), 1),
 	}
 
 	return &MdClient{
@@ -51,20 +50,14 @@ func NewMdClient() *MdClient {
 func (c *MdClient) Get(url string) (*http.Response, error) {
 
 	if strings.Contains(url, "/at-home/server/") {
-		// fmt.Println("We are rate limiting!")
-		// c.Mutex.Lock()
 		limiter := c.RateLimiterMap["/at-home/server/"]
-		// c.Mutex.Unlock()
-		limiter.Take()
+		err := limiter.Wait(context.Background())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	res, err := c.Client.Get(url)
-
-	// fmt.Println(res.StatusCode)
-
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// }
 
 	return res, err
 
