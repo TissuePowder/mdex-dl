@@ -74,17 +74,21 @@ func (t *TitleDownloader) StartDownloading() {
 
 			for _, r := range d.Relationships {
 				if r.Type == "manga" {
+					m.Lock()
 					if titleName == "" {
 						wg.Add(1)
 						go GetTitleName(r.Id, &titleName, &wg, &m)
 					}
+					m.Unlock()
 				} else if r.Type == "scanlation_group" {
+					m.Lock()
 					if _, ok := scanGroup[r.Id]; !ok {
 						wg.Add(1)
 						go GetScanGroupName(r.Id, &scanGroup, &groups, &wg, &m)
 					} else {
 						groups = append(groups, scanGroup[r.Id])
 					}
+					m.Unlock()
 				}
 			}
 
