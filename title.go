@@ -114,10 +114,12 @@ func (t *TitleDownloader) StartDownloading() {
 			}
 
 			var path string
+			cTitle := strings.Replace(d.Attributes.Title, "/", " - ", -1)
+			
 			if t.Query.NoChapterDir {
 				path = fmt.Sprintf("%s/c%s_[%s]", titleName, cstr, gstring)
 			} else {
-				path = fmt.Sprintf("%s/Ch.%s [%s]/c%s", titleName, cstr, gstring, cstr)
+				path = fmt.Sprintf("%s/Ch.%s - %s [%s]/c%s", titleName, cstr, cTitle, gstring, cstr)
 			}
 			// fmt.Println(path)
 
