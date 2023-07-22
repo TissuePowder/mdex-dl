@@ -123,7 +123,7 @@ func (q *QueryBuilder) SetFlags() *QueryBuilder {
 
 	datasaver := flag.Bool("data-saver", false, "")
 	nochapterdir := flag.Bool("no-chapter-dir", false, "")
-	thread := flag.Int("thread", 5, "")
+	thread := flag.Int("thread", 4, "")
 
 	flag.Parse()
 
