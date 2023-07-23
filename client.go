@@ -22,7 +22,7 @@ func NewMdClient() *MdClient {
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
+			KeepAlive: 60 * time.Second,
 		}).DialContext,
 		MaxIdleConns:          100,
 		MaxConnsPerHost:       100,
@@ -57,7 +57,14 @@ func (c *MdClient) Get(url string) (*http.Response, error) {
 		}
 	}
 
-	res, err := c.Client.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Accept-Encoding", "identity")
+
+	res, err := c.Client.Do(req)
 
 	return res, err
 
