@@ -63,6 +63,10 @@ func DownloadPage(image Image, client *MdClient) error {
 
 	filename := fmt.Sprintf("%s_p%04d%s", image.Path, image.Idx+1, ext)
 
+	img := filepath.Base(image.Url)
+	withoutExt := strings.Split(img, ".")[0]
+	origHash := strings.Split(withoutExt, "-")[1]
+
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		err := os.MkdirAll(filepath.Dir(filename), 0775)
 		if err != nil {
@@ -70,10 +74,6 @@ func DownloadPage(image Image, client *MdClient) error {
 			return err
 		}
 	} else {
-		img := filepath.Base(image.Url)
-		withoutExt := strings.Split(img, ".")[0]
-		origHash := strings.Split(withoutExt, "-")[1]
-		// fmt.Println(origHash)
 		existHash, err := CalcHash(filename)
 		if err != nil {
 			fmt.Println(err.Error())
@@ -83,7 +83,7 @@ func DownloadPage(image Image, client *MdClient) error {
 			return nil
 		} else {
 			fmt.Println("hash mismatch")
-			err := os.Rename(filename, filename + ".bak")
+			err := os.Rename(filename, filename+".bak")
 			if err != nil {
 				return err
 			}
@@ -95,7 +95,6 @@ func DownloadPage(image Image, client *MdClient) error {
 		fmt.Println(err.Error())
 		return err
 	}
-	defer file.Close()
 
 	_, err = io.Copy(file, res.Body)
 
@@ -103,8 +102,21 @@ func DownloadPage(image Image, client *MdClient) error {
 		fmt.Println(err.Error())
 		return err
 	}
+	file.Close()
 
-	fmt.Println(filename)
+	existHash, err := CalcHash(filename)
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+	if origHash == existHash {
+		fmt.Println(filename)
+		return nil
+	} else {
+		fmt.Println("hash mismatch")
+		fmt.Println(filename)
+		os.Exit(1)
+	}
 	return nil
 }
 
