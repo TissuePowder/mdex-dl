@@ -28,19 +28,12 @@ func CalcSha256(data []byte) (string, error) {
 
 func DownloadPage(image Image, client *MdClient) error {
 
-	res, err := client.Get(image.Url)
-	if err != nil {
-		fmt.Println(err.Error())
-		return err
-	}
-	defer res.Body.Close()
-
 	ext := filepath.Ext(image.Url)
 
 	filename := fmt.Sprintf("%s_p%04d%s", image.Path, image.Idx+1, ext)
 
-	img := filepath.Base(image.Url)
-	withoutExt := strings.Split(img, ".")[0]
+	base := filepath.Base(image.Url)
+	withoutExt := strings.Split(base, ".")[0]
 	origHash := strings.Split(withoutExt, "-")[1]
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
@@ -84,12 +77,12 @@ func DownloadPage(image Image, client *MdClient) error {
 
 	}
 
-	file, err := os.Create(filename)
+	res, err := client.Get(image.Url)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
-	defer file.Close()
+	defer res.Body.Close()
 
 	var resbuf bytes.Buffer
 	_, err = resbuf.ReadFrom(res.Body)
@@ -106,7 +99,14 @@ func DownloadPage(image Image, client *MdClient) error {
 
 	if origHash == responseHash {
 
-		_, err := io.Copy(file, &resbuf)
+		file, err := os.Create(filename)
+		if err != nil {
+			fmt.Println(err.Error())
+			return err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(file, &resbuf)
 		if err != nil {
 			fmt.Println(err.Error())
 			return err
