@@ -29,6 +29,7 @@ func NewDownloader(client *MdClient, query Query) Downloader {
 	arr := strings.Split(url, "/")
 	if arr[1] == "chapter" {
 		query.TitleQuery.Ids = []string{arr[2]}
+		return NewTitleDownloader("", client, query)
 	}
 	return NewTitleDownloader(arr[2], client, query)
 }
